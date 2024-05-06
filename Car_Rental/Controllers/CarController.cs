@@ -2,14 +2,11 @@
 using Car_Rental.Models;
 using Car_Rental.Repository;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
 
 namespace Car_Rental.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("[controller]")]
     public class CarController : ControllerBase
     {
         private readonly IcarRepository _carRepository;
@@ -47,44 +44,45 @@ namespace Car_Rental.Controllers
             return response;
         }
 
-        [HttpGet("{id}")]
-        public ActionResult<GeneralResponse> GetById(int id)
-        {
-            Car car = _carRepository.get(id);
+        //[HttpGet("{id}")]
+        //public ActionResult<GeneralResponse> GetById(int id)
+        //{
+        //    Car car = _carRepository.get(id);
 
-            if (car == null || car.IsDeleted)
-            {
-                GeneralResponse generalResponse = new GeneralResponse()
-                {
-                    IsPass = false,
-                    Message = "Car not found."
-                };
-                return NotFound(generalResponse);
-            }
+        //    if (car == null || car.IsDeleted)
+        //    {
+        //        GeneralResponse generalResponse = new GeneralResponse()
+        //        {
+        //            IsPass = false,
+        //            Message = "Car not found."
+        //        };
+        //        return NotFound(generalResponse);
+        //    }
 
-            CarDTO carDTO = new CarDTO
-            {
-                Id = car.Id,
-                Model = car.Model,
-                Make = car.Make,
-                Year = car.Year,
-                FuelType = car.FuelType,
-                IsAvailable = car.IsAvailable,
-                Image = car.Image,
-                LocationId = car.Location_Id
-            };
+        //    CarDTO carDTO = new CarDTO
+        //    {
+        //        Id = car.Id,
+        //        Model = car.Model,
+        //        Make = car.Make,
+        //        Year = car.Year,
+        //        FuelType = car.FuelType,
+        //        IsAvailable = car.IsAvailable,
+        //        Image = car.Image,
+        //        LocationId = car.Location_Id
+        //    };
 
-            GeneralResponse response = new GeneralResponse()
-            {
-                IsPass = true,
-                Message = carDTO
-            };
-            return response;
-        }
+        //    GeneralResponse response = new GeneralResponse()
+        //    {
+        //        IsPass = true,
+        //        Message = carDTO
+        //    };
+        //    return response;
+        //}
 
 
 
         [HttpGet("{id:guid}")]
+
         public ActionResult<GeneralResponse> GetCarsByUserId(string userId)
         {
             List<Car> cars = _carRepository.GetCarsByUserId(userId).Where(c => !c.IsDeleted).ToList();
@@ -191,5 +189,61 @@ namespace Car_Rental.Controllers
 
         }
 
+        [HttpGet("search")]
+        public ActionResult<GeneralResponse> SearchByModel(string model)
+        {
+            List<Car> cars = _carRepository.SearchByMode(model);
+
+            List<CarDTO> carDTOs = cars.Select(car => new CarDTO
+            {
+                Model = car.Model,
+                Make = car.Make,
+                Year = car.Year,
+                FuelType = car.FuelType,
+                IsAvailable = car.IsAvailable,
+                Image = car.Image,
+                LocationId = car.Location_Id
+            }).ToList();
+
+            return new GeneralResponse()
+            {
+                IsPass = true,
+                Message = carDTOs
+            };
+
+        }
+
+        [HttpGet("page")]
+        public ActionResult<GeneralResponse> GetAll(int page)
+        {
+            List<Car> cars = _carRepository.getAll().Where(car => !car.IsDeleted).ToList();
+            int pageSize = 10;
+            nint currentPage = page;
+            int totalCount = cars.Count;
+            int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            List<CarDTO> carDTO = cars.Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(car => new CarDTO
+                {
+                    Model = car.Model,
+                    Make = car.Make,
+                    Year = car.Year,
+                    FuelType = car.FuelType,
+                    IsAvailable = car.IsAvailable,
+                    Image = car.Image,
+                    LocationId = car.Location_Id
+                }).ToList();
+
+
+            return new GeneralResponse()
+
+            {
+                IsPass = true,
+                Message = carDTO
+
+            };
+
+        }
+
+        }
     }
-}

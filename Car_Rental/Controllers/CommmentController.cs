@@ -1,7 +1,10 @@
 ﻿using Car_Rental.DTOs;
 using Car_Rental.Models;
+using Car_Rental.MyHub;
 using Car_Rental.Repository;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Car_Rental.Controllers
 {
@@ -10,13 +13,16 @@ namespace Car_Rental.Controllers
     public class CommentController : ControllerBase
     {
         private readonly ICommentRepository commentRepository;
+        private readonly commentHub commentHub;
 
-        public CommentController(ICommentRepository commentRepository)
+        public CommentController(ICommentRepository commentRepository, commentHub commentHub)
         {
             this.commentRepository = commentRepository;
+            this.commentHub = commentHub;
         }
 
         [HttpGet]
+        [Authorize]
         public ActionResult<GeneralResponse> GetAll()
         {
             List<Comments> comments = commentRepository.getAll().Where(i => i.IsDeleted == false).ToList();
@@ -41,6 +47,7 @@ namespace Car_Rental.Controllers
         }
 
         [HttpDelete]
+        [Authorize]
         public ActionResult<GeneralResponse> Delete(int id)
         {
 
@@ -60,6 +67,7 @@ namespace Car_Rental.Controllers
 
 
         [HttpPut("{id:int}")]
+        [Authorize]
         public ActionResult<GeneralResponse> Update(int id, updateCommentDTO newComment)
         {
 
@@ -87,21 +95,23 @@ namespace Car_Rental.Controllers
 
 
         [HttpPost]
-        public ActionResult<GeneralResponse> Insert(commentDTO commentDto)
+        [Authorize]
+        public async Task<ActionResult<GeneralResponse>> Insert(commentDTO commentDto)
         {
 
             if (ModelState.IsValid)
             {
-                Comments comments = new Comments();
+                //Comments comments = new Comments();
 
-                comments.Text = commentDto.Text;
-                comments.Rating = commentDto.Rating;
-                comments.IsDeleted = commentDto.IsDeleted;
-                comments.userId = commentDto.userId;
-                comments.CarId = commentDto.CarId;
-                commentRepository.Insert(comments);
-                commentRepository.save();
+                //comments.Text = commentDto.Text;
+                //comments.Rating = commentDto.Rating;
+                //comments.IsDeleted = commentDto.IsDeleted;
+                //comments.userId = commentDto.userId;
+                //comments.CarId = commentDto.CarId;
+                //commentRepository.Insert(comments);
+                //commentRepository.save();
 
+                await commentHub.Clients.All.SendAsync("NewComment", commentDto.Text, commentDto.CarId, commentDto.Rating);
                 return new GeneralResponse { IsPass = true, Message = "Comment inserted successfully" };
 
             }
@@ -110,6 +120,7 @@ namespace Car_Rental.Controllers
 
 
         [HttpGet("{id:guid}")]
+        [Authorize]
         public ActionResult<GeneralResponse> GetByUserId(string id)
         {
             List<Comments> comments = commentRepository.getByUserID(id).Where(i => i.IsDeleted == false).ToList();
